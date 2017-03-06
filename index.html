@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="format-detection" content="telephone=no" />
+  <meta name="wap-font-scale" content="no">
+  <title>居洋洋</title>
+  <!-- <link rel="shortcut icon" href="./favicon.ico"> -->
+  <script src="/public/js/rem.js"></script>
+  <link rel="stylesheet" href="/libs/Art-Reactor/dist/art-reactor.min.css">
+  <link rel="stylesheet" href="/public/less/common.less">
+  <link rel="stylesheet" href="/less/index.less">
+</head>
+<body>
+  <div class="index-content">
+    <!-- 占位 -->
+    <div class="height-44"></div>
+    <!-- 头部 -->
+    <header class="head head-blue ">
+      <a href="javascript:;" class="btn-back-history"><i class="ar ar-angle-left"></i></a>
+      <h2 class="head-tit">居洋洋</h2>
+      <div class="header-icon-a">
+        <img class="header-icon-img" src="/images/toggleButton.png">
+      </div>
+    </header>
+    <!-- 头部END -->
+    <div class="findhouse">
+      <!-- <input class="findhouse-area" type="text" placeholder="万科金色城市" readonly></input> -->
+      <a class="findhouse-area" href="search.html">万科金色城市</a>
+      <a class="findhouse-btn" href="maphouses.html">地图找房</a>
+    </div>
+    <a class="adv-icon-a">
+      <img class="adv-icon-img" src="/images/abc.png"></img>
+    </a>
+    <!-- 地铁线路 -->
+    <link rel="import" href="tpl/index/subway.tpl?__inline">
+    <!-- 地铁线路 END-->
+
+    <!-- 列表数据 -->
+    <link rel="import" href="tpl/index/list.tpl?__inline">
+    <!-- 列表数据 END-->
+      
+    <!-- 精选房源 -->
+    <link rel="import" href="tpl/index/spec.tpl?__inline">
+    <!-- 精选房源end --> 
+
+    <!-- 上一站 下一站 遮层 -->
+    <link rel="import" href="tpl/index/prenext.tpl?__inline">
+    <!-- 上一站 下一站 遮层 END-->
+
+    <link rel="import" href="/public/tpl/websitenav.tpl?__inline">
+    <link rel="import" href="/public/tpl/footer.tpl?__inline">
+  </div>    
+    
+</body>
+<script src="/libs/zepto/zepto.min.js"></script>
+<script src="/libs/knockout/knockout-3.4.0.js"></script>
+<script src="js/common.js"></script>
+<script src="js/index.js"></script>
+<script>
+  var indexModel = {
+      flagHouse: ko.observable(), 
+      flagEsf: ko.observable(), 
+      flagRent: ko.observable(),  //检测数据是否加载完毕
+
+      flagNoHouse: ko.observable(false), 
+      flagNoEsf: ko.observable(false), 
+      flagNoZufang: ko.observable(false),      // 检测数据是否存在
+      line: ko.observableArray(),              // 线路数据
+      activeLineInfo: ko.observableArray(),         // 当前选中线路的基本的信息
+      stationList:ko.observableArray(),         // 站点总数据list
+      // openedStation: ko.observableArray(),      // 开放线路站点数据
+      // unOpenedStation: ko.observableArray(),      // 未开放线路站点数据
+      station:ko.observableArray(),      // 站点数组
+      activeSiteInfo:ko.observableArray(),            //当前高亮的站点的基本信息
+      preActiveSiteInfo:ko.observableArray(),            //当前高亮的站点前一站的基本信息
+      nextActiveSiteInfo:ko.observableArray(),            //当前高亮的站点后一站的基本信息
+      // searchConditions: ko.observableArray(),      // 搜索条件
+      // searchCondTitle: ko.observable(""),       // 搜索条件保存时的title
+      // searchCondList: ko.observableArray(),      // 保存的搜索条件
+      // hotKeyWords:ko.observableArray(),      // 热搜关键词
+      checkedModel: ko.observable("-1"),       // 类型选择 -1全部 1 新房 2 二手房 3 租房
+      activePageIndex: ko.observable("1"),       // 当前活动的页码 默认第一页
+      // recommentHouses:ko.observableArray(),      // 新房推荐楼盘
+      houseListData: ko.observableArray(),     // 新房列表数据
+      esfListData: ko.observableArray(),     // 二手房列表数据
+      rentListData: ko.observableArray(),     // 租房列表数据
+      houseTotalCount:ko.observable(""),  //新房数据的总长度
+      activeHouse:ko.observableArray(),     // 当前活动的楼盘 主要服务于地图 街景图
+      // keyWrod:ko.observable(""),  //输入的关键字
+      // searchHouses:ko.observable(""),  //通过关键字检索的列表
+
+      tagSpec: ko.observable(1), 
+      choseSpec:function(type){
+        this.tagSpec(type);
+      },
+      // 选择类型
+      choseModel:function(num,name){
+        this.checkedModel(num);
+        $('.house-source-class span').text(name);
+        jyy.hideMash();
+        this.flagNoHouse(false);
+        this.flagNoEsf(false);
+        this.flagNoZufang(false);
+        window.scrollTo(0,0); 
+      },
+      // 获取（过滤）站点数据
+      getSiteData:function(item){
+        indexModel.activeLineInfo(item);
+        indexModel.preActiveSiteInfo({});
+        indexModel.nextActiveSiteInfo({});
+        jyy.getStationData(item.operateState,item.shortKey);
+      },
+      // 点击某一个站点 item为点击的站点信息 index 为当前站点在线路中的索引
+      choseSite:function(item,index){
+        indexModel.activeSiteInfo(item);
+        window.scrollTo(0,0); 
+        // 通过当前活动的线路开通状态判断是线路数组
+        var arr= indexModel.station();
+        // 如果当前索引为0 则不显示上一站点
+        // 如果索引为最后一个，则不显示下一站
+        if(index<=0){
+          arr[index+1].index = index+1;
+          indexModel.preActiveSiteInfo({});
+          indexModel.nextActiveSiteInfo(arr[index+1]);
+        }else if(index>=arr.length-1){
+          arr[index-1].index = index-1;
+          indexModel.preActiveSiteInfo(arr[index-1]);
+          indexModel.nextActiveSiteInfo({});
+        }else{
+          arr[index-1].index = index-1;
+          arr[index+1].index = index+1;
+          indexModel.preActiveSiteInfo(arr[index-1]);
+          indexModel.nextActiveSiteInfo(arr[index+1]);
+        }
+        jyy.hideMash();
+      },
+      // 计算两个经纬度之间的距离
+      calculateDistance:function(x,y){
+        // var _curSite = $('.siteName.cur'),_x0=_curSite.attr('data-x'),_y0=_curSite.attr('data-y');
+        var _x0 = this.activeSiteInfo().x_site, _y0 = this.activeSiteInfo().y_site;
+        if(_x0&&_y0){
+          return common.getFlatternDistance(_x0,_y0,x,y).toFixed(2);
+        }else{
+          return -1;
+        }
+      },
+      // 计算评价百分比
+      percentWidth:function(num){
+        return parseFloat(num*100 / 5 ) + "%";
+      },
+      getMoreData:function(){
+        var _lindId = indexModel.activeLineInfo().shortKey, 
+            _siteId = indexModel.activeSiteInfo().shortKey,
+            _curPage = parseInt(this.activePageIndex());
+        if(_curPage<this.houseTotalCount()){
+          _curPage += 1;
+          this.activePageIndex(_curPage);
+        }
+        jyy.getHouseList(_lindId,_siteId,_curPage,10);
+      },
+      // // 计算更新时间
+      // updateTime:function(num){
+      //   var s = (new Date().getTime() - num)/1000,
+      //       day =  Math.floor(s/(60*60*24)),
+      //       month = Math.floor(day / 30),
+      //       hour =  Math.floor((s-(day * (60*60*24)))/(60*60)),
+      //       minute = Math.floor((s-(day * (60*60*24))-(hour * (60*60)))/(60));
+      //   if(month>0){
+      //     return month+'月前更新';
+      //   }else{
+      //     if(day>0){
+      //       return day+'天前更新';
+      //     }else{
+      //       if(hour >0){
+      //         return hour+'小时前更新';
+      //       }else{
+      //         return minute+'分钟前更新';
+      //       }
+      //     }
+      //   }
+      // },
+      // houseDetailMap:function(_x,_y,_title){
+      //   index.dialogMap(0,_x,_y,_title);
+      // },
+      // houseImgMap:function(_x,_y,_title){
+      //   index.dialogMap(1,_x,_y,_title);
+      // },
+      // 处理二手房 租房的标题
+      subtitle:function(str){
+        if(str && str.length>20){
+          str=str.slice(0,20)+"…";
+        }
+        return str;
+      }
+  }
+  // 监视线路发生改变
+  indexModel.activeLineInfo.subscribe(function (item) {
+    // if(item&&item.shortKey){
+    //   var type = indexModel.checkedModel(),
+    //       _lindId = item.shortKey,
+    //       _siteId = indexModel.activeSiteInfo().shortKey,
+    //       _pageIndex = indexModel.activePageIndex();
+      
+    //   // index.map(); //百度地图
+    //   jyy.getListData(type,_lindId,_siteId,_pageIndex); //获取列表数据
+    // }else{
+    //   renturn -1;
+    // }
+    var type = indexModel.checkedModel(),
+        _lindId = item.shortKey,
+        _siteId = indexModel.activeSiteInfo().shortKey,
+        _pageIndex = indexModel.activePageIndex();
+    
+    // index.map(); //百度地图
+    jyy.getListData(type,_lindId,_siteId,_pageIndex); //获取列表数据
+  });
+  // 监视站点发生改变
+  indexModel.activeSiteInfo.subscribe(function (item) {
+    // if(item&&item.shortKey){
+    //   var type = indexModel.checkedModel(),
+    //       _lindId = indexModel.activeLineInfo().shortKey, 
+    //       _siteId = item.shortKey,
+    //       _pageIndex = indexModel.activePageIndex();
+    //   // console.log(item.shortKey);
+    //   // index.map(item); //百度地图
+    //   jyy.getListData(type,_lindId,_siteId,_pageIndex); //获取列表数据
+    // }else{
+    //   return -1;
+    // }
+    var type = indexModel.checkedModel(),
+        _lindId = indexModel.activeLineInfo().shortKey, 
+        _siteId = item.shortKey,
+        _pageIndex = indexModel.activePageIndex();
+    // console.log(item.shortKey);
+    // index.map(item); //百度地图
+    jyy.getListData(type,_lindId,_siteId,_pageIndex); //获取列表数据
+  });
+  // 监视类型发生改变
+  indexModel.checkedModel.subscribe(function (type) {
+    var _lindId = indexModel.activeLineInfo().shortKey, 
+        _siteId = indexModel.activeSiteInfo().shortKey,
+        _pageIndex = indexModel.activePageIndex();
+    // index.map(newModel.activeSiteInfo()); //百度地图
+    jyy.getListData(type,_lindId,_siteId,_pageIndex);
+    // 初始化选中的热门推荐
+    jyy.initSpec(type);
+  });
+  // 监视总的页数发生改变
+  // newModel.houseTotalCount.subscribe(function (newval){
+  //   var _curPage = newModel.activePageIndex();
+  //   $('.container-left .otherpage').attr({'data-count':Math.ceil(newval/10),'data-cur':_curPage}).updataPage();
+  // });
+  // indexModel.activePageIndex.subscribe(function (newval){
+  //   var type = indexModel.checkedModel(),
+  //       _lindId = indexModel.activeLineInfo().shortKey, 
+  //       _siteId = indexModel.activeSiteInfo().shortKey;
+  //   // index.map(newModel.activeSiteInfo()); //百度地图
+  //   jyy.getListData(type,_lindId,_siteId,newval);
+  // });
+  ko.applyBindings(indexModel);
+  common.changeSiteMenu();
+  jyy.jyyInit();
+</script>
+</html>
+
+
